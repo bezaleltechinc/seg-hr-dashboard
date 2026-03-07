@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEG HR Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>SEG HR Dashboard - Complete System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- PapaParse for CSV Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <style>
         * {
@@ -43,7 +46,7 @@
             line-height: 1.6;
         }
 
-        /* Login Screen Styles */
+        /* Login Screen */
         #login-screen {
             display: flex;
             align-items: center;
@@ -97,7 +100,6 @@
             font-weight: 700;
             color: var(--text-primary);
             margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
         }
 
         .login-subtitle {
@@ -117,32 +119,32 @@
             font-size: 0.9rem;
         }
 
-        .form-input {
+        .form-input, .form-select {
             width: 100%;
-            padding: 1rem 1.25rem;
+            padding: 0.875rem 1rem;
             border: 2px solid var(--border);
-            border-radius: 12px;
+            border-radius: 10px;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 0.95rem;
             transition: all 0.2s;
             background: var(--bg-main);
         }
 
-        .form-input:focus {
+        .form-input:focus, .form-select:focus {
             outline: none;
             border-color: var(--primary);
             background: white;
-            box-shadow: 0 0 0 4px rgba(10, 77, 60, 0.1);
+            box-shadow: 0 0 0 3px rgba(10, 77, 60, 0.1);
         }
 
         .btn {
-            padding: 1rem 2rem;
-            border-radius: 12px;
+            padding: 0.875rem 1.5rem;
+            border-radius: 10px;
             font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1rem;
+            transition: all 0.2s;
+            font-size: 0.95rem;
             font-family: inherit;
             display: inline-flex;
             align-items: center;
@@ -153,20 +155,38 @@
         .btn-primary {
             background: var(--primary);
             color: white;
-            width: 100%;
         }
 
         .btn-primary:hover:not(:disabled) {
             background: var(--primary-light);
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(10, 77, 60, 0.3);
+            box-shadow: 0 8px 16px rgba(10, 77, 60, 0.2);
         }
 
         .btn-primary:disabled {
             background: var(--text-secondary);
             cursor: not-allowed;
-            transform: none;
             opacity: 0.6;
+        }
+
+        .btn-secondary {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
         }
 
         .error-message {
@@ -178,17 +198,10 @@
             margin-bottom: 1.5rem;
             font-size: 0.9rem;
             display: none;
-            animation: shake 0.5s;
         }
 
         .error-message.show {
             display: block;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
         }
 
         .success-message {
@@ -206,7 +219,6 @@
             display: block;
         }
 
-        /* Loading Spinner */
         .spinner {
             border: 3px solid var(--border);
             border-top: 3px solid var(--primary);
@@ -214,6 +226,7 @@
             width: 20px;
             height: 20px;
             animation: spin 0.8s linear infinite;
+            display: inline-block;
         }
 
         @keyframes spin {
@@ -221,7 +234,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Dashboard Container (hidden until login) */
+        /* Dashboard */
         #dashboard-app {
             display: none;
         }
@@ -245,7 +258,6 @@
             height: 100vh;
             overflow-y: auto;
             box-shadow: var(--shadow-lg);
-            z-index: 100;
         }
 
         .sidebar-header {
@@ -256,7 +268,6 @@
         .sidebar-header h1 {
             font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 0.25rem;
         }
 
         .sidebar-header p {
@@ -264,13 +275,11 @@
             opacity: 0.8;
         }
 
-        /* User Badge in Sidebar */
         .user-badge {
             padding: 1rem 1.5rem;
             background: rgba(255, 255, 255, 0.1);
             margin: 1rem 1.5rem;
             border-radius: 12px;
-            backdrop-filter: blur(10px);
         }
 
         .user-info {
@@ -291,7 +300,6 @@
             justify-content: center;
             font-weight: 700;
             font-size: 1rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .user-details {
@@ -301,43 +309,28 @@
         .user-name {
             font-size: 0.9rem;
             font-weight: 600;
-            color: white;
-            margin-bottom: 0.125rem;
         }
 
         .user-role {
             font-size: 0.75rem;
             opacity: 0.9;
             color: var(--accent-light);
-            font-weight: 500;
         }
 
         .btn-logout {
             width: 100%;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem;
             background: rgba(239, 68, 68, 0.2);
             color: white;
             border: 1px solid rgba(239, 68, 68, 0.4);
             border-radius: 8px;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
         }
 
-        .btn-logout:hover {
-            background: rgba(239, 68, 68, 0.3);
-            border-color: rgba(239, 68, 68, 0.6);
-        }
-
-        /* Navigation */
         .nav-menu {
             list-style: none;
             padding: 1rem 0;
-        }
-
-        .nav-item {
-            margin-bottom: 0.25rem;
         }
 
         .nav-link {
@@ -347,14 +340,12 @@
             color: rgba(255, 255, 255, 0.85);
             text-decoration: none;
             transition: all 0.2s;
-            font-weight: 500;
             border-left: 3px solid transparent;
         }
 
         .nav-link:hover {
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            border-left-color: var(--accent);
         }
 
         .nav-link.active {
@@ -382,125 +373,225 @@
         .page-title {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--text-primary);
             margin-bottom: 0.5rem;
         }
 
         .page-subtitle {
             color: var(--text-secondary);
-            font-size: 1rem;
         }
 
-        /* Simple message for now */
-        .welcome-message {
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .card {
             background: white;
             border-radius: 16px;
-            padding: 3rem;
-            text-align: center;
+            padding: 2rem;
             box-shadow: var(--shadow);
-            border: 1px solid var(--border);
+            margin-bottom: 2rem;
         }
 
-        .welcome-icon {
-            font-size: 4rem;
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 1.5rem;
         }
 
-        .welcome-message h2 {
-            font-size: 1.75rem;
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-main);
+            font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 1rem;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .welcome-message p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            line-height: 1.8;
+        th:hover {
+            background: var(--border);
         }
 
-        /* Sync Status Indicator */
-        .sync-status {
+        tr:hover {
+            background: var(--bg-main);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e3a8a;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: 50px;
-            box-shadow: var(--shadow-lg);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s;
-            border: 1px solid var(--border);
+            align-items: center;
+            justify-content: center;
         }
 
-        .sync-status.show {
-            opacity: 1;
+        .modal.show {
+            display: flex;
         }
 
-        .sync-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
+        .modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
-        .sync-dot.syncing {
-            background: var(--warning);
-            animation: pulse 1.5s infinite;
+        .modal-header {
+            margin-bottom: 1.5rem;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
         }
 
-        .sync-dot.error {
-            background: var(--danger);
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
         }
 
-        /* Hide elements based on role */
-        /* 2. REPLACED ROLE PERMISSIONS */
-		.admin-only, .finance-only, .exec-only, .staff-only {
-			display: none;
-		}
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
 
-		/* HR Admin & Finance Manager see Admin tools */
-		body.role-admin .admin-only,
-		body.role-finance_manager .admin-only {
-			display: block;
-		}
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
 
-		/* Specific Role Views */
-		body.role-executive_director .exec-only { display: block; }
-		body.role-finance_manager .finance-only { display: block; }
-		body.role-employee .staff-only { display: block; }
-		
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        /* Permission controls */
+        .admin-only {
+            display: none;
+        }
+
+        body.role-admin .admin-only {
+            display: inline-flex;
+        }
+
+        .admin-finance-only {
+            display: none;
+        }
+
+        body.role-admin .admin-finance-only,
+        body.role-finance_manager .admin-finance-only {
+            display: inline-flex;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
-                transform: translateX(-100%);
+                width: 100%;
+                height: auto;
+                position: relative;
             }
 
             .main-content {
                 margin-left: 0;
             }
 
-            .login-container {
-                padding: 2rem;
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
         }
-		.page-view {
-			animation: fadeIn 0.3s ease-in;
-		}
-
-		@keyframes fadeIn {
-			from { opacity: 0; }
-			to { opacity: 1; }
-		}
     </style>
 </head>
 <body>
@@ -525,7 +616,6 @@
                         class="form-input" 
                         placeholder="your.email@seg.org"
                         required
-                        autocomplete="email"
                     >
                 </div>
 
@@ -537,11 +627,10 @@
                         class="form-input" 
                         placeholder="Enter your password"
                         required
-                        autocomplete="current-password"
                     >
                 </div>
 
-                <button type="submit" class="btn btn-primary" id="login-btn">
+                <button type="submit" class="btn btn-primary" id="login-btn" style="width: 100%;">
                     <span id="login-text">Sign In</span>
                     <span id="login-spinner" class="spinner" style="display: none;"></span>
                 </button>
@@ -549,17 +638,15 @@
         </div>
     </div>
 
-    <!-- Dashboard Application (Hidden until login) -->
+    <!-- Dashboard -->
     <div id="dashboard-app">
         <div class="dashboard-container">
-            <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-header">
                     <h1>SEG HR</h1>
                     <p>Human Resource Management</p>
                 </div>
                 
-                <!-- User Badge -->
                 <div class="user-badge">
                     <div class="user-info">
                         <div class="user-avatar" id="user-avatar">U</div>
@@ -568,123 +655,567 @@
                             <div class="user-role" id="user-role-display">...</div>
                         </div>
                     </div>
-                    <button class="btn-logout" onclick="logout()">
-                        🚪 Logout
-                    </button>
+                    <button class="btn-logout" onclick="logout()">🚪 Logout</button>
                 </div>
 
-                <!-- Navigation -->
                 <nav>
                     <ul class="nav-menu">
-						<li class="nav-item">
-							<a href="#" class="nav-link active" data-page="dashboard">
-								<span class="nav-link-icon">📊</span> Dashboard
-							</a>
-						</li>
-						<li class="nav-item admin-only">
-							<a href="#" class="nav-link" data-page="employees">
-								<span class="nav-link-icon">👥</span> Employees
-							</a>
-						</li>
-						<li class="nav-item">
-							<a href="#" class="nav-link" data-page="leave">
-								<span class="nav-link-icon">🏖️</span> Leave Management
-							</a>
-						</li>
-						<li class="nav-item admin-only">
-							<a href="#" class="nav-link" data-page="onboarding">
-								<span class="nav-link-icon">🎯</span> Onboarding
-							</a>
-						</li>
-						<li class="nav-item finance-only">
-							<a href="#" class="nav-link" data-page="analytics">
-								<span class="nav-link-icon">📈</span> Analytics
-							</a>
-						</li>
-					</ul>
+                        <li><a href="#" class="nav-link active" onclick="showPage('dashboard')">
+                            <span class="nav-link-icon">📊</span> Dashboard
+                        </a></li>
+                        <li><a href="#" class="nav-link" onclick="showPage('employees')">
+                            <span class="nav-link-icon">👥</span> Employees
+                        </a></li>
+                        <li><a href="#" class="nav-link" onclick="showPage('leave')">
+                            <span class="nav-link-icon">🏖️</span> Leave Management
+                        </a></li>
+                        <li><a href="#" class="nav-link" onclick="showPage('onboarding')">
+                            <span class="nav-link-icon">🎯</span> Onboarding
+                        </a></li>
+                        <li><a href="#" class="nav-link" onclick="showPage('analytics')">
+                            <span class="nav-link-icon">📈</span> Analytics
+                        </a></li>
+                        <li class="admin-only"><a href="#" class="nav-link" onclick="showPage('users')">
+                            <span class="nav-link-icon">👤</span> User Management
+                        </a></li>
+                    </ul>
                 </nav>
             </aside>
 
-            <!-- Main Content -->
             <main class="main-content">
-                <div class="page-header">
-					<h2 class="page-title" id="current-page-title">Dashboard</h2>
-					<p class="page-subtitle" id="current-page-subtitle">Welcome to SEG HR Dashboard</p>
-				</div>
+                <!-- Dashboard Page -->
+                <div id="page-dashboard" class="page-view">
+                    <div class="page-header">
+                        <h2 class="page-title">Dashboard</h2>
+                        <p class="page-subtitle">Overview of your workforce</p>
+                    </div>
 
-				<div id="page-dashboard" class="page-view">
-					<div class="welcome-message">
-						<div class="welcome-icon">🎉</div>
-						<h2>You're Successfully Logged In!</h2>
-						<p>Your Supabase-powered HR Dashboard is now live.</p>
-						<p style="margin-top: 1.5rem; font-size: 0.95rem;">
-							<strong>Your role:</strong> <span id="role-display-main" style="color: var(--primary);"></span>
-						</p>
-					</div>
-				</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Employees</div>
+                            <div class="stat-value" id="stat-total">0</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color: var(--success);">
+                            <div class="stat-label">Active Staff</div>
+                            <div class="stat-value" id="stat-active" style="color: var(--success);">0</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color: var(--warning);">
+                            <div class="stat-label">Pending Leave Requests</div>
+                            <div class="stat-value" id="stat-pending-leave" style="color: var(--warning);">0</div>
+                        </div>
+                        <div class="stat-card" style="border-left-color: var(--info);">
+                            <div class="stat-label">On Leave Today</div>
+                            <div class="stat-value" id="stat-on-leave" style="color: var(--info);">0</div>
+                        </div>
+                    </div>
 
-				<div id="page-employees" class="page-view" style="display: none;">
-					<div class="card-container" style="background: white; padding: 2rem; border-radius: 16px; box-shadow: var(--shadow);">
-						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-							<h2>Employee Directory</h2>
-							<button class="btn btn-primary admin-only" onclick="showAddEmployeeModal()">
-								+ Add Employee
-							</button>
-						</div>
-						
-						<div id="employees-table-container">
-							<p style="text-align: center; color: var(--text-secondary);">
-								<span class="spinner" style="display: inline-block; margin-right: 10px;"></span> 
-								Fetching records from Supabase...
-							</p>
-						</div>
-					</div>
-				</div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Quick Actions</h3>
+                        </div>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary admin-finance-only" onclick="showPage('employees'); showModal('add-employee-modal');">
+                                ➕ Add Employee
+                            </button>
+                            <button class="btn btn-primary" onclick="showPage('leave'); showModal('add-leave-modal');">
+                                📝 Request Leave
+                            </button>
+                            <button class="btn btn-success" onclick="exportToCSV();">
+                                📥 Export Data
+                            </button>
+                        </div>
+                    </div>
 
-				<div id="page-leave" class="page-view" style="display: none;">
-					<div class="welcome-message">
-						<h2>Leave Management</h2>
-						<p>Fetching leave requests...</p>
-					</div>
-				</div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Demographics Overview</h3>
+                        </div>
+                        <div id="demographics-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- Demographics will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employees Page -->
+                <div id="page-employees" class="page-view" style="display: none;">
+                    <div class="page-header">
+                        <h2 class="page-title">Employee Directory</h2>
+                        <p class="page-subtitle">Manage employee records</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="toolbar">
+                            <div class="search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="employee-search" placeholder="Search employees..." onkeyup="filterEmployees()">
+                            </div>
+                            <button class="btn btn-primary admin-finance-only" onclick="showModal('add-employee-modal')">
+                                ➕ Add Employee
+                            </button>
+                            <button class="btn btn-secondary admin-only" onclick="showModal('import-csv-modal')">
+                                📂 Import CSV
+                            </button>
+                            <button class="btn btn-secondary" onclick="showModal('column-settings-modal')">
+                                ⚙️ Columns
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+                            <table id="employees-table">
+                                <thead>
+                                    <tr id="employee-table-header">
+                                        <!-- Headers will be populated dynamically -->
+                                    </tr>
+                                </thead>
+                                <tbody id="employees-table-body">
+                                    <tr>
+                                        <td colspan="10" style="text-align: center;">
+                                            <span class="spinner"></span> Loading employees...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Management Page -->
+                <div id="page-leave" class="page-view" style="display: none;">
+                    <div class="page-header">
+                        <h2 class="page-title">Leave Management</h2>
+                        <p class="page-subtitle">Manage leave requests and approvals</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="toolbar">
+                            <div class="search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="leave-search" placeholder="Search leave requests..." onkeyup="filterLeaveRequests()">
+                            </div>
+                            <button class="btn btn-primary" onclick="showModal('add-leave-modal')">
+                                📝 Request Leave
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Type</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Days</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leave-table-body">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center;">
+                                            <span class="spinner"></span> Loading leave requests...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onboarding Page -->
+                <div id="page-onboarding" class="page-view" style="display: none;">
+                    <div class="page-header">
+                        <h2 class="page-title">Onboarding</h2>
+                        <p class="page-subtitle">Track new employee onboarding</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="toolbar">
+                            <button class="btn btn-primary admin-finance-only" onclick="showModal('add-onboarding-modal')">
+                                ➕ Add Onboarding Task
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Start Date</th>
+                                        <th>Duration (days)</th>
+                                        <th>End Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="onboarding-table-body">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center;">
+                                            <span class="spinner"></span> Loading onboarding tasks...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Page -->
+                <div id="page-analytics" class="page-view" style="display: none;">
+                    <div class="page-header">
+                        <h2 class="page-title">Analytics</h2>
+                        <p class="page-subtitle">Workforce insights and trends</p>
+                    </div>
+
+                    <div id="analytics-container">
+                        <!-- Analytics charts will be populated here -->
+                    </div>
+                </div>
+
+                <!-- User Management Page (Admin Only) -->
+                <div id="page-users" class="page-view admin-only" style="display: none;">
+                    <div class="page-header">
+                        <h2 class="page-title">User Management</h2>
+                        <p class="page-subtitle">Manage system users and roles</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="toolbar">
+                            <button class="btn btn-primary" onclick="showModal('add-user-modal')">
+                                ➕ Add User
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center;">
+                                            <span class="spinner"></span> Loading users...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
 
-    <!-- Sync Status Indicator -->
-    <div id="sync-status" class="sync-status">
-        <div class="sync-dot" id="sync-dot"></div>
-        <span id="sync-text">Connected</span>
+    <!-- MODALS START HERE -->
+    
+    <!-- Add Employee Modal -->
+    <div id="add-employee-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="employee-modal-title">Add New Employee</h3>
+            </div>
+            <form id="employee-form" onsubmit="saveEmployee(event)">
+                <input type="hidden" id="employee-id">
+                
+                <div class="form-group">
+                    <label class="form-label">Employee ID *</label>
+                    <input type="text" id="emp-id" class="form-input" required placeholder="e.g. SEG-MN-001">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="emp-name" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date" id="emp-dob" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" id="emp-position" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <input type="text" id="emp-department" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Employment Type *</label>
+                    <select id="emp-type" class="form-select" required>
+                        <option value="STAFF">Staff</option>
+                        <option value="CONSULTANT">Consultant</option>
+                        <option value="INTERN">Intern</option>
+                        <option value="VOLUNTEER">Volunteer</option>
+                        <option value="NSP">NSP</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Gender</label>
+                    <select id="emp-gender" class="form-select">
+                        <option value="">Select...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nationality</label>
+                    <input type="text" id="emp-nationality" class="form-input" value="Ghanaian">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" id="emp-start-date" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Annual Leave Days</label>
+                    <input type="number" id="emp-leave-days" class="form-input" value="20" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Leave Remaining</label>
+                    <input type="number" id="emp-leave-remaining" class="form-input" value="20" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Salary/Consideration</label>
+                    <input type="number" id="emp-salary" class="form-input" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Currency</label>
+                    <select id="emp-currency" class="form-select">
+                        <option value="GHS">GHS</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select id="emp-status" class="form-select">
+                        <option value="ACTIVE">Active</option>
+                        <option value="ON_LEAVE">On Leave</option>
+                        <option value="TERMINATED">Terminated</option>
+                        <option value="CONTRACT_ENDED">Contract Ended</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Folder Link</label>
+                    <input type="url" id="emp-folder-link" class="form-input" placeholder="https://drive.google.com/...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="emp-notes" class="form-input" rows="3"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('add-employee-modal')" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Employee</button>
+                </div>
+            </form>
+        </div>
     </div>
 
-	<div id="add-employee-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-		<div style="background:white; padding:2.5rem; border-radius:20px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto;">
-			<h3 style="margin-bottom:1.5rem;">Add New Employee</h3>
-			<form id="add-employee-form">
-				<div class="form-group">
-					<label class="form-label">Full Name</label>
-					<input type="text" id="emp-name" class="form-input" required>
-				</div>
-				<div class="form-group">
-					<label class="form-label">Position</label>
-					<input type="text" id="emp-position" class="form-input" placeholder="e.g. Project Manager">
-				</div>
-				<div class="form-group">
-					<label class="form-label">Department</label>
-					<select id="emp-dept" class="form-input">
-						<option value="Administration">Administration</option>
-						<option value="Finance">Finance</option>
-						<option value="Operations">Operations</option>
-						<option value="Programs">Programs</option>
-					</select>
-				</div>
-				<div style="display:flex; gap:1rem; margin-top:2rem;">
-					<button type="button" class="btn" style="background:#e2e8f0; flex:1;" onclick="hideAddEmployeeModal()">Cancel</button>
-					<button type="submit" class="btn btn-primary" style="flex:1;">Save Employee</button>
-				</div>
-			</form>
-		</div>
-	</div>
+    <!-- Add Leave Modal -->
+    <div id="add-leave-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Request Leave</h3>
+            </div>
+            <form id="leave-form" onsubmit="saveLeaveRequest(event)">
+                <div class="form-group">
+                    <label class="form-label">Employee *</label>
+                    <select id="leave-employee" class="form-select" required>
+                        <option value="">Select employee...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Leave Type *</label>
+                    <select id="leave-type" class="form-select" required>
+                        <option value="Annual">Annual Leave</option>
+                        <option value="Sick">Sick Leave</option>
+                        <option value="Personal">Personal Leave</option>
+                        <option value="Maternity">Maternity Leave</option>
+                        <option value="Paternity">Paternity Leave</option>
+                        <option value="Study">Study Leave</option>
+                        <option value="Unpaid">Unpaid Leave</option>
+                        <option value="Bereavement">Bereavement Leave</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Start Date *</label>
+                    <input type="date" id="leave-start-date" class="form-input" required onchange="calculateLeaveDays()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">End Date *</label>
+                    <input type="date" id="leave-end-date" class="form-input" required onchange="calculateLeaveDays()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Number of Days</label>
+                    <input type="number" id="leave-days" class="form-input" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Reason</label>
+                    <textarea id="leave-reason" class="form-input" rows="3"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('add-leave-modal')" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Onboarding Modal -->
+    <div id="add-onboarding-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Onboarding Task</h3>
+            </div>
+            <form id="onboarding-form" onsubmit="saveOnboarding(event)">
+                <div class="form-group">
+                    <label class="form-label">Employee *</label>
+                    <select id="onboard-employee" class="form-select" required>
+                        <option value="">Select employee...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Start Date *</label>
+                    <input type="date" id="onboard-start-date" class="form-input" required onchange="calculateOnboardingEnd()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duration (days) *</label>
+                    <input type="number" id="onboard-duration" class="form-input" required min="1" value="30" onchange="calculateOnboardingEnd()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">End Date</label>
+                    <input type="date" id="onboard-end-date" class="form-input" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select id="onboard-status" class="form-select">
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="onboard-notes" class="form-input" rows="3"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('add-onboarding-modal')" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add User Modal (Admin Only) -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New User</h3>
+            </div>
+            <form id="user-form" onsubmit="saveUser(event)">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="user-name" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input type="email" id="user-email" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" id="user-password" class="form-input" required minlength="8">
+                    <small style="color: var(--text-secondary);">Minimum 8 characters</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Role *</label>
+                    <select id="user-role" class="form-select" required>
+                        <option value="executive_director">Executive Director</option>
+                        <option value="finance_manager">Finance & Admin Manager</option>
+                        <option value="admin">HR Administrator</option>
+                        <option value="employee">Employee</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('add-user-modal')" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div id="import-csv-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Import Employees from CSV</h3>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select CSV File</label>
+                <input type="file" id="csv-file" accept=".csv" class="form-input" onchange="handleCSVUpload(event)">
+                <small style="color: var(--text-secondary);">File must match the employee data structure</small>
+            </div>
+            <div id="csv-preview" style="display: none; margin-top: 1rem;">
+                <p><strong>Preview:</strong> <span id="csv-count">0</span> employees found</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('import-csv-modal')" style="flex: 1;">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="importCSVData()" style="flex: 1;" id="import-csv-btn" disabled>Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Settings Modal -->
+    <div id="column-settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Manage Columns</h3>
+            </div>
+            <div id="column-checkboxes">
+                <!-- Column checkboxes will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="hideModal('column-settings-modal')" style="width: 100%;">Done</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ============================================
@@ -693,30 +1224,37 @@
         const SUPABASE_URL = 'https://koutmkeyatrzollndqgi.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvdXRta2V5YXRyem9sbG5kcWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MjAxMDMsImV4cCI6MjA4ODM5NjEwM30.cZBEfJPU5C4tbMpHXMUy1W6ZWuY2hs6e-Ulqj9oOAPA';
 
-        // Initialize Supabase client
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Global state
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
         let currentUser = null;
         let currentUserRole = null;
         let currentUserData = null;
+        let employees = [];
+        let leaveRequests = [];
+        let onboardingTasks = [];
+        let users = [];
+        let csvData = null;
+
+        // Column visibility settings
+        let visibleColumns = {
+            id: true,
+            name: true,
+            position: true,
+            department: true,
+            type: true,
+            gender: true,
+            leave_days: true,
+            salary: false, // Hidden by default for privacy
+            status: true,
+            actions: true
+        };
 
         // ============================================
-        // AUTHENTICATION FUNCTIONS
+        // AUTHENTICATION
         // ============================================
-
-        // Check if user is already logged in
-        async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (session) {
-                currentUser = session.user;
-                await loadUserData();
-                showDashboard();
-            }
-        }
-
-        // Login form handler
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -729,17 +1267,14 @@
             const errorMsg = document.getElementById('error-message');
             const successMsg = document.getElementById('success-message');
 
-            // Reset messages
             errorMsg.classList.remove('show');
             successMsg.classList.remove('show');
             
-            // Show loading state
             loginBtn.disabled = true;
             loginText.style.display = 'none';
             loginSpinner.style.display = 'block';
 
             try {
-                // Sign in with Supabase
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password,
@@ -748,15 +1283,11 @@
                 if (error) throw error;
 
                 currentUser = data.user;
-                
-                // Load user role and data
                 await loadUserData();
                 
-                // Show success message briefly
                 successMsg.textContent = '✓ Login successful! Loading dashboard...';
                 successMsg.classList.add('show');
                 
-                // Show dashboard after brief delay
                 setTimeout(() => {
                     showDashboard();
                 }, 1000);
@@ -765,11 +1296,8 @@
                 console.error('Login error:', error);
                 
                 let message = 'Invalid email or password';
-                
                 if (error.message.includes('Invalid login credentials')) {
                     message = 'Invalid email or password. Please try again.';
-                } else if (error.message.includes('Email not confirmed')) {
-                    message = 'Please verify your email address first.';
                 } else if (error.message) {
                     message = error.message;
                 }
@@ -777,18 +1305,14 @@
                 errorMsg.textContent = '✗ ' + message;
                 errorMsg.classList.add('show');
                 
-                // Reset button
                 loginBtn.disabled = false;
                 loginText.style.display = 'block';
                 loginSpinner.style.display = 'none';
             }
         });
 
-        // Load user data from database
         async function loadUserData() {
             try {
-                updateSyncStatus('syncing');
-                
                 const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -803,37 +1327,25 @@
                 currentUserData = data;
                 currentUserRole = data.role;
                 
-                updateSyncStatus('connected');
-                
             } catch (error) {
-                updateSyncStatus('error');
                 throw error;
             }
         }
 
-        // Show dashboard after successful login
         function showDashboard() {
-            // Hide login screen
             document.getElementById('login-screen').style.display = 'none';
-            
-            // Show dashboard
             document.getElementById('dashboard-app').classList.add('show');
             
-            // Set user info in sidebar
             const name = currentUserData.name || currentUser.email;
             document.getElementById('user-name').textContent = name;
             document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
             document.getElementById('user-role-display').textContent = getRoleDisplayName(currentUserRole);
-            document.getElementById('role-display-main').textContent = getRoleDisplayName(currentUserRole);
             
-            // Set role-based CSS class for permission control
             document.body.className = 'role-' + currentUserRole;
             
-            // Show sync status briefly
-            updateSyncStatus('connected');
+            loadAllData();
         }
 
-        // Logout function
         async function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 try {
@@ -846,255 +1358,943 @@
             }
         }
 
-        // Get friendly role name
         function getRoleDisplayName(role) {
-			const roles = {
-			'admin': 'HR Administrator',
-			'executive_director': 'Executive Director',
-			'finance_manager': 'Finance & Admin Manager',
-			'employee': 'Staff Member'
-			};
-			return roles[role] || 'Staff Member';
-		}
+            const roles = {
+                'admin': 'HR Administrator',
+                'executive_director': 'Executive Director',
+                'finance_manager': 'Finance & Admin Manager',
+                'employee': 'Employee'
+            };
+            return roles[role] || role;
+        }
 
-        // Update sync status indicator
-        function updateSyncStatus(status) {
-            const syncStatus = document.getElementById('sync-status');
-            const syncDot = document.getElementById('sync-dot');
-            const syncText = document.getElementById('sync-text');
-            
-            syncStatus.classList.add('show');
-            syncDot.className = 'sync-dot';
-            
-            if (status === 'syncing') {
-                syncDot.classList.add('syncing');
-                syncText.textContent = 'Syncing...';
-            } else if (status === 'connected') {
-                syncText.textContent = 'Connected';
-                setTimeout(() => {
-                    syncStatus.classList.remove('show');
-                }, 2000);
-            } else if (status === 'error') {
-                syncDot.classList.add('error');
-                syncText.textContent = 'Connection error';
+        // ============================================
+        // DATA LOADING
+        // ============================================
+        async function loadAllData() {
+            await Promise.all([
+                loadEmployees(),
+                loadLeaveRequests(),
+                loadOnboardingTasks(),
+                loadUsers()
+            ]);
+            updateDashboardStats();
+        }
+
+        async function loadEmployees() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .select('*')
+                    .order('name');
+
+                if (error) throw error;
+
+                employees = data || [];
+                renderEmployeesTable();
+                populateEmployeeDropdowns();
+                updateDemographics();
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                employees = [];
             }
+        }
+
+        async function loadLeaveRequests() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('leave_requests')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                leaveRequests = data || [];
+                renderLeaveTable();
+            } catch (error) {
+                console.error('Error loading leave requests:', error);
+                leaveRequests = [];
+            }
+        }
+
+        async function loadOnboardingTasks() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('onboarding_tasks')
+                    .select('*')
+                    .order('start_date', { ascending: false });
+
+                if (error) throw error;
+
+                onboardingTasks = data || [];
+                renderOnboardingTable();
+            } catch (error) {
+                console.error('Error loading onboarding tasks:', error);
+                onboardingTasks = [];
+            }
+        }
+
+        async function loadUsers() {
+            if (currentUserRole !== 'admin') return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                users = data || [];
+                renderUsersTable();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                users = [];
+            }
+        }
+
+        // ============================================
+        // PAGE NAVIGATION
+        // ============================================
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page-view').forEach(page => {
+                page.style.display = 'none';
+            });
+            
+            // Show selected page
+            document.getElementById('page-' + pageName).style.display = 'block';
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.closest('.nav-link').classList.add('active');
+        }
+
+        // ============================================
+        // MODAL FUNCTIONS
+        // ============================================
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            // Reset form if exists
+            const form = document.getElementById(modalId).querySelector('form');
+            if (form) form.reset();
+        }
+
+        // ============================================
+        // EMPLOYEE FUNCTIONS
+        // ============================================
+        async function saveEmployee(event) {
+            event.preventDefault();
+            
+            const employeeData = {
+                id: document.getElementById('emp-id').value.toUpperCase(),
+                name: document.getElementById('emp-name').value,
+                dob: document.getElementById('emp-dob').value || null,
+                position: document.getElementById('emp-position').value || null,
+                department: document.getElementById('emp-department').value || null,
+                type: document.getElementById('emp-type').value,
+                gender: document.getElementById('emp-gender').value || null,
+                nationality: document.getElementById('emp-nationality').value || 'Ghanaian',
+                start_date: document.getElementById('emp-start-date').value || null,
+                leave_days: parseInt(document.getElementById('emp-leave-days').value) || 0,
+                leave_remaining: parseInt(document.getElementById('emp-leave-remaining').value) || 0,
+                salary: parseFloat(document.getElementById('emp-salary').value) || null,
+                currency: document.getElementById('emp-currency').value || 'GHS',
+                status: document.getElementById('emp-status').value || 'ACTIVE',
+                folder_link: document.getElementById('emp-folder-link').value || null,
+                notes: document.getElementById('emp-notes').value || null
+            };
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .upsert(employeeData);
+
+                if (error) throw error;
+
+                alert('Employee saved successfully!');
+                hideModal('add-employee-modal');
+                await loadEmployees();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Error saving employee:', error);
+                alert('Error saving employee: ' + error.message);
+            }
+        }
+
+        function editEmployee(employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+            if (!employee) return;
+
+            // Populate form
+            document.getElementById('employee-modal-title').textContent = 'Edit Employee';
+            document.getElementById('emp-id').value = employee.id;
+            document.getElementById('emp-id').readOnly = true;
+            document.getElementById('emp-name').value = employee.name || '';
+            document.getElementById('emp-dob').value = employee.dob || '';
+            document.getElementById('emp-position').value = employee.position || '';
+            document.getElementById('emp-department').value = employee.department || '';
+            document.getElementById('emp-type').value = employee.type || 'STAFF';
+            document.getElementById('emp-gender').value = employee.gender || '';
+            document.getElementById('emp-nationality').value = employee.nationality || 'Ghanaian';
+            document.getElementById('emp-start-date').value = employee.start_date || '';
+            document.getElementById('emp-leave-days').value = employee.leave_days || 0;
+            document.getElementById('emp-leave-remaining').value = employee.leave_remaining || 0;
+            document.getElementById('emp-salary').value = employee.salary || '';
+            document.getElementById('emp-currency').value = employee.currency || 'GHS';
+            document.getElementById('emp-status').value = employee.status || 'ACTIVE';
+            document.getElementById('emp-folder-link').value = employee.folder_link || '';
+            document.getElementById('emp-notes').value = employee.notes || '';
+
+            showModal('add-employee-modal');
+        }
+
+        async function deleteEmployee(employeeId) {
+            if (!confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('employees')
+                    .delete()
+                    .eq('id', employeeId);
+
+                if (error) throw error;
+
+                alert('Employee deleted successfully');
+                await loadEmployees();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Error deleting employee:', error);
+                alert('Error deleting employee: ' + error.message);
+            }
+        }
+
+        function renderEmployeesTable() {
+            const tbody = document.getElementById('employees-table-body');
+            const thead = document.getElementById('employee-table-header');
+            
+            // Render headers
+            const headers = [
+                { key: 'id', label: 'ID', sortable: true },
+                { key: 'name', label: 'Name', sortable: true },
+                { key: 'position', label: 'Position', sortable: true },
+                { key: 'department', label: 'Department', sortable: true },
+                { key: 'type', label: 'Type', sortable: true },
+                { key: 'gender', label: 'Gender', sortable: true },
+                { key: 'leave_days', label: 'Leave', sortable: true },
+                { key: 'salary', label: 'Salary', sortable: true },
+                { key: 'status', label: 'Status', sortable: true },
+                { key: 'actions', label: 'Actions', sortable: false }
+            ];
+
+            thead.innerHTML = headers
+                .filter(h => visibleColumns[h.key])
+                .map(h => `<th onclick="${h.sortable ? `sortTable('${h.key}')` : ''}">${h.label}</th>`)
+                .join('');
+            
+            // Render rows
+            if (employees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No employees found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = employees.map(emp => {
+                const cells = [];
+                
+                if (visibleColumns.id) cells.push(`<td><strong>${emp.id}</strong></td>`);
+                if (visibleColumns.name) cells.push(`<td>${emp.name}</td>`);
+                if (visibleColumns.position) cells.push(`<td>${emp.position || '-'}</td>`);
+                if (visibleColumns.department) cells.push(`<td>${emp.department || '-'}</td>`);
+                if (visibleColumns.type) cells.push(`<td><span class="badge badge-info">${emp.type}</span></td>`);
+                if (visibleColumns.gender) cells.push(`<td>${emp.gender || '-'}</td>`);
+                if (visibleColumns.leave_days) cells.push(`<td>${emp.leave_remaining || 0}/${emp.leave_days || 0}</td>`);
+                if (visibleColumns.salary) cells.push(`<td>${emp.salary ? emp.currency + ' ' + emp.salary.toLocaleString() : '-'}</td>`);
+                if (visibleColumns.status) cells.push(`<td><span class="badge badge-${getStatusBadgeClass(emp.status)}">${emp.status}</span></td>`);
+                if (visibleColumns.actions) {
+                    const isAdmin = currentUserRole === 'admin';
+                    const isFinance = currentUserRole === 'finance_manager';
+                    const canEdit = isAdmin || isFinance;
+                    
+                    cells.push(`
+                        <td>
+                            ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="editEmployee('${emp.id}')">✏️ Edit</button>` : ''}
+                            ${isAdmin ? `<button class="btn btn-sm btn-danger" onclick="deleteEmployee('${emp.id}')">🗑️</button>` : ''}
+                        </td>
+                    `);
+                }
+                
+                return `<tr>${cells.join('')}</tr>`;
+            }).join('');
+        }
+
+        function getStatusBadgeClass(status) {
+            const classes = {
+                'ACTIVE': 'success',
+                'ON_LEAVE': 'warning',
+                'TERMINATED': 'danger',
+                'CONTRACT_ENDED': 'secondary'
+            };
+            return classes[status] || 'secondary';
+        }
+
+        function filterEmployees() {
+            const searchTerm = document.getElementById('employee-search').value.toLowerCase();
+            
+            const filtered = employees.filter(emp => 
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.id.toLowerCase().includes(searchTerm) ||
+                (emp.position && emp.position.toLowerCase().includes(searchTerm)) ||
+                (emp.department && emp.department.toLowerCase().includes(searchTerm))
+            );
+            
+            const tbody = document.getElementById('employees-table-body');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No employees found</td></tr>';
+                return;
+            }
+            
+            // Re-render with filtered data
+            const tempEmployees = employees;
+            employees = filtered;
+            renderEmployeesTable();
+            employees = tempEmployees;
+        }
+
+        function sortTable(column) {
+            const sortDirection = employees._sortColumn === column && employees._sortDirection === 'asc' ? 'desc' : 'asc';
+            
+            employees.sort((a, b) => {
+                let aVal = a[column] || '';
+                let bVal = b[column] || '';
+                
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            employees._sortColumn = column;
+            employees._sortDirection = sortDirection;
+            
+            renderEmployeesTable();
+        }
+
+        function populateEmployeeDropdowns() {
+            const selects = ['leave-employee', 'onboard-employee'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                
+                select.innerHTML = '<option value="">Select employee...</option>' +
+                    employees.map(emp => 
+                        `<option value="${emp.id}">${emp.name} (${emp.id})</option>`
+                    ).join('');
+            });
+        }
+
+        // ============================================
+        // LEAVE MANAGEMENT
+        // ============================================
+        async function saveLeaveRequest(event) {
+            event.preventDefault();
+            
+            const leaveData = {
+                employee_id: document.getElementById('leave-employee').value,
+                leave_type: document.getElementById('leave-type').value,
+                start_date: document.getElementById('leave-start-date').value,
+                end_date: document.getElementById('leave-end-date').value,
+                days: parseInt(document.getElementById('leave-days').value),
+                reason: document.getElementById('leave-reason').value || null,
+                status: 'PENDING'
+            };
+
+            // Get employee name
+            const employee = employees.find(e => e.id === leaveData.employee_id);
+            if (employee) {
+                leaveData.employee_name = employee.name;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('leave_requests')
+                    .insert([leaveData]);
+
+                if (error) throw error;
+
+                alert('Leave request submitted successfully!');
+                hideModal('add-leave-modal');
+                await loadLeaveRequests();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Error saving leave request:', error);
+                alert('Error submitting leave request: ' + error.message);
+            }
+        }
+
+        function calculateLeaveDays() {
+            const startDate = new Date(document.getElementById('leave-start-date').value);
+            const endDate = new Date(document.getElementById('leave-end-date').value);
+            
+            if (startDate && endDate && endDate >= startDate) {
+                let days = 0;
+                let currentDate = new Date(startDate);
+                
+                while (currentDate <= endDate) {
+                    const dayOfWeek = currentDate.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Exclude weekends
+                        days++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                document.getElementById('leave-days').value = days;
+            }
+        }
+
+        async function approveLeave(leaveId) {
+            const canApprove = ['admin', 'finance_manager', 'executive_director'].includes(currentUserRole);
+            if (!canApprove) {
+                alert('You do not have permission to approve leave requests');
+                return;
+            }
+
+            try {
+                const leave = leaveRequests.find(l => l.id === leaveId);
+                if (!leave) return;
+
+                const employee = employees.find(e => e.id === leave.employee_id);
+                if (!employee) {
+                    alert('Employee not found');
+                    return;
+                }
+
+                // Check if employee has enough leave days
+                if (leave.days > (employee.leave_remaining || 0)) {
+                    alert(`Cannot approve: Employee has only ${employee.leave_remaining || 0} days remaining, but ${leave.days} days requested.`);
+                    return;
+                }
+
+                // Update leave request status
+                const { error: leaveError } = await supabaseClient
+                    .from('leave_requests')
+                    .update({ status: 'APPROVED' })
+                    .eq('id', leaveId);
+
+                if (leaveError) throw leaveError;
+
+                // Deduct from employee leave balance
+                const { error: empError } = await supabaseClient
+                    .from('employees')
+                    .update({ leave_remaining: (employee.leave_remaining || 0) - leave.days })
+                    .eq('id', employee.id);
+
+                if (empError) throw empError;
+
+                alert('Leave request approved!');
+                await Promise.all([loadLeaveRequests(), loadEmployees()]);
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Error approving leave:', error);
+                alert('Error approving leave: ' + error.message);
+            }
+        }
+
+        async function rejectLeave(leaveId) {
+            const canApprove = ['admin', 'finance_manager', 'executive_director'].includes(currentUserRole);
+            if (!canApprove) {
+                alert('You do not have permission to reject leave requests');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('leave_requests')
+                    .update({ status: 'REJECTED' })
+                    .eq('id', leaveId);
+
+                if (error) throw error;
+
+                alert('Leave request rejected');
+                await loadLeaveRequests();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Error rejecting leave:', error);
+                alert('Error rejecting leave: ' + error.message);
+            }
+        }
+
+        function renderLeaveTable() {
+            const tbody = document.getElementById('leave-table-body');
+            
+            if (leaveRequests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No leave requests found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = leaveRequests.map(leave => {
+                const canApprove = ['admin', 'finance_manager', 'executive_director'].includes(currentUserRole);
+                
+                return `
+                    <tr>
+                        <td>${leave.employee_name || leave.employee_id}</td>
+                        <td>${leave.leave_type}</td>
+                        <td>${formatDate(leave.start_date)}</td>
+                        <td>${formatDate(leave.end_date)}</td>
+                        <td>${leave.days} days</td>
+                        <td><span class="badge badge-${getLeaveStatusBadge(leave.status)}">${leave.status}</span></td>
+                        <td>
+                            ${leave.status === 'PENDING' && canApprove ? `
+                                <button class="btn btn-sm btn-success" onclick="approveLeave(${leave.id})">✓ Approve</button>
+                                <button class="btn btn-sm btn-danger" onclick="rejectLeave(${leave.id})">✗ Reject</button>
+                            ` : '-'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getLeaveStatusBadge(status) {
+            const badges = {
+                'PENDING': 'warning',
+                'APPROVED': 'success',
+                'REJECTED': 'danger'
+            };
+            return badges[status] || 'secondary';
+        }
+
+        function filterLeaveRequests() {
+            const searchTerm = document.getElementById('leave-search').value.toLowerCase();
+            
+            const filtered = leaveRequests.filter(leave => 
+                (leave.employee_name && leave.employee_name.toLowerCase().includes(searchTerm)) ||
+                leave.employee_id.toLowerCase().includes(searchTerm) ||
+                leave.leave_type.toLowerCase().includes(searchTerm)
+            );
+            
+            const tbody = document.getElementById('leave-table-body');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No leave requests found</td></tr>';
+                return;
+            }
+            
+            const tempLeave = leaveRequests;
+            leaveRequests = filtered;
+            renderLeaveTable();
+            leaveRequests = tempLeave;
+        }
+
+        // ============================================
+        // ONBOARDING
+        // ============================================
+        async function saveOnboarding(event) {
+            event.preventDefault();
+            
+            const onboardingData = {
+                employee_id: document.getElementById('onboard-employee').value,
+                start_date: document.getElementById('onboard-start-date').value,
+                duration: parseInt(document.getElementById('onboard-duration').value),
+                end_date: document.getElementById('onboard-end-date').value,
+                status: document.getElementById('onboard-status').value,
+                notes: document.getElementById('onboard-notes').value || null
+            };
+
+            // Get employee name
+            const employee = employees.find(e => e.id === onboardingData.employee_id);
+            if (employee) {
+                onboardingData.employee_name = employee.name;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('onboarding_tasks')
+                    .insert([onboardingData]);
+
+                if (error) throw error;
+
+                alert('Onboarding task created successfully!');
+                hideModal('add-onboarding-modal');
+                await loadOnboardingTasks();
+            } catch (error) {
+                console.error('Error saving onboarding task:', error);
+                alert('Error creating onboarding task: ' + error.message);
+            }
+        }
+
+        function calculateOnboardingEnd() {
+            const startDate = new Date(document.getElementById('onboard-start-date').value);
+            const duration = parseInt(document.getElementById('onboard-duration').value);
+            
+            if (startDate && duration) {
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + duration);
+                document.getElementById('onboard-end-date').value = endDate.toISOString().split('T')[0];
+            }
+        }
+
+        async function updateOnboardingStatus(taskId, newStatus) {
+            try {
+                const { error } = await supabaseClient
+                    .from('onboarding_tasks')
+                    .update({ status: newStatus })
+                    .eq('id', taskId);
+
+                if (error) throw error;
+
+                await loadOnboardingTasks();
+            } catch (error) {
+                console.error('Error updating onboarding status:', error);
+                alert('Error updating status: ' + error.message);
+            }
+        }
+
+        function renderOnboardingTable() {
+            const tbody = document.getElementById('onboarding-table-body');
+            
+            if (onboardingTasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No onboarding tasks found</td></tr>';
+                return;
+            }
+
+            const canManage = ['admin', 'finance_manager'].includes(currentUserRole);
+
+            tbody.innerHTML = onboardingTasks.map(task => `
+                <tr>
+                    <td>${task.employee_name || task.employee_id}</td>
+                    <td>${formatDate(task.start_date)}</td>
+                    <td>${task.duration} days</td>
+                    <td>${formatDate(task.end_date)}</td>
+                    <td><span class="badge badge-${getOnboardingStatusBadge(task.status)}">${task.status.replace('_', ' ')}</span></td>
+                    <td>
+                        ${canManage ? `
+                            <select onchange="updateOnboardingStatus(${task.id}, this.value)" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border);">
+                                <option value="PENDING" ${task.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                <option value="IN_PROGRESS" ${task.status === 'IN_PROGRESS' ? 'selected' : ''}>In Progress</option>
+                                <option value="COMPLETED" ${task.status === 'COMPLETED' ? 'selected' : ''}>Completed</option>
+                            </select>
+                        ` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getOnboardingStatusBadge(status) {
+            const badges = {
+                'PENDING': 'warning',
+                'IN_PROGRESS': 'info',
+                'COMPLETED': 'success'
+            };
+            return badges[status] || 'secondary';
+        }
+
+        // ============================================
+        // USER MANAGEMENT (ADMIN ONLY)
+        // ============================================
+        async function saveUser(event) {
+            event.preventDefault();
+            
+            const userName = document.getElementById('user-name').value;
+            const userEmail = document.getElementById('user-email').value;
+            const userPassword = document.getElementById('user-password').value;
+            const userRole = document.getElementById('user-role').value;
+
+            try {
+                // Create auth user
+                const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+                    email: userEmail,
+                    password: userPassword,
+                    email_confirm: true
+                });
+
+                if (authError) throw authError;
+
+                // Create user profile
+                const { error: profileError } = await supabaseClient
+                    .from('users')
+                    .insert([{
+                        id: authData.user.id,
+                        email: userEmail,
+                        name: userName,
+                        role: userRole
+                    }]);
+
+                if (profileError) throw profileError;
+
+                alert('User created successfully! They can now login with their credentials.');
+                hideModal('add-user-modal');
+                await loadUsers();
+            } catch (error) {
+                console.error('Error creating user:', error);
+                alert('Error creating user: ' + error.message);
+            }
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No users found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td><span class="badge badge-info">${getRoleDisplayName(user.role)}</span></td>
+                    <td>${formatDate(user.created_at)}</td>
+                    <td>
+                        ${user.id !== currentUser.id ? `
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">🗑️ Remove</button>
+                        ` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to remove this user? This will delete their account.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('users')
+                    .delete()
+                    .eq('id', userId);
+
+                if (error) throw error;
+
+                alert('User removed successfully');
+                await loadUsers();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Error deleting user: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // CSV IMPORT
+        // ============================================
+        function handleCSVUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                complete: function(results) {
+                    csvData = results.data.filter(row => row.id && row.name); // Filter out empty rows
+                    document.getElementById('csv-count').textContent = csvData.length;
+                    document.getElementById('csv-preview').style.display = 'block';
+                    document.getElementById('import-csv-btn').disabled = false;
+                },
+                error: function(error) {
+                    alert('Error parsing CSV: ' + error.message);
+                }
+            });
+        }
+
+        async function importCSVData() {
+            if (!csvData || csvData.length === 0) {
+                alert('No data to import');
+                return;
+            }
+
+            if (!confirm(`Import ${csvData.length} employees? This will add new employees and update existing ones.`)) {
+                return;
+            }
+
+            try {
+                // Map CSV data to match database structure
+                const employeesData = csvData.map(row => ({
+                    id: row.id.toUpperCase(),
+                    name: row.name,
+                    dob: row.dob || null,
+                    position: row.position || null,
+                    department: row.department || null,
+                    type: row.type ? row.type.toUpperCase() : 'STAFF',
+                    gender: row.gender || null,
+                    nationality: row.nationality || 'Ghanaian',
+                    start_date: row.start_date || null,
+                    leave_days: parseInt(row.leave_days) || 0,
+                    leave_remaining: parseInt(row.leave_remaining) || parseInt(row.leave_days) || 0,
+                    salary: parseFloat(row.salary) || null,
+                    currency: row.currency || 'GHS',
+                    status: row.status ? row.status.toUpperCase() : 'ACTIVE',
+                    folder_link: row.folder_link || null,
+                    notes: row.notes || null
+                }));
+
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .upsert(employeesData);
+
+                if (error) throw error;
+
+                alert(`Successfully imported ${employeesData.length} employees!`);
+                hideModal('import-csv-modal');
+                csvData = null;
+                await loadEmployees();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Error importing CSV:', error);
+                alert('Error importing data: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // COLUMN VISIBILITY
+        // ============================================
+        function showColumnSettings() {
+            const checkboxContainer = document.getElementById('column-checkboxes');
+            
+            checkboxContainer.innerHTML = Object.keys(visibleColumns)
+                .filter(key => key !== 'actions') // Actions column always visible
+                .map(key => `
+                    <div style="padding: 0.75rem; border-bottom: 1px solid var(--border);">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input 
+                                type="checkbox" 
+                                ${visibleColumns[key] ? 'checked' : ''}
+                                onchange="toggleColumn('${key}')"
+                                style="margin-right: 0.75rem;"
+                            >
+                            <span>${key.replace('_', ' ').toUpperCase()}</span>
+                            ${key === 'salary' ? ' <span style="color: var(--danger); font-size: 0.75rem; margin-left: 0.5rem;">(Sensitive)</span>' : ''}
+                        </label>
+                    </div>
+                `).join('');
+            
+            showModal('column-settings-modal');
+        }
+
+        function toggleColumn(columnKey) {
+            visibleColumns[columnKey] = !visibleColumns[columnKey];
+            renderEmployeesTable();
+        }
+
+        // ============================================
+        // DASHBOARD STATS
+        // ============================================
+        function updateDashboardStats() {
+            document.getElementById('stat-total').textContent = employees.length;
+            document.getElementById('stat-active').textContent = employees.filter(e => e.status === 'ACTIVE').length;
+            document.getElementById('stat-pending-leave').textContent = leaveRequests.filter(l => l.status === 'PENDING').length;
+            
+            // Calculate employees on leave today
+            const today = new Date().toISOString().split('T')[0];
+            const onLeaveToday = leaveRequests.filter(l => 
+                l.status === 'APPROVED' && 
+                l.start_date <= today && 
+                l.end_date >= today
+            ).length;
+            document.getElementById('stat-on-leave').textContent = onLeaveToday;
+        }
+
+        function updateDemographics() {
+            const container = document.getElementById('demographics-container');
+            
+            // Gender breakdown
+            const genderCounts = {};
+            employees.forEach(emp => {
+                const gender = emp.gender || 'Not Specified';
+                genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+            });
+
+            // Type breakdown
+            const typeCounts = {};
+            employees.forEach(emp => {
+                typeCounts[emp.type] = (typeCounts[emp.type] || 0) + 1;
+            });
+
+            container.innerHTML = `
+                <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                    <strong>By Gender</strong>
+                    ${Object.entries(genderCounts).map(([key, val]) => 
+                        `<div>${key}: ${val}</div>`
+                    ).join('')}
+                </div>
+                <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                    <strong>By Employment Type</strong>
+                    ${Object.entries(typeCounts).map(([key, val]) => 
+                        `<div>${key}: ${val}</div>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        // ============================================
+        // EXPORT FUNCTIONS
+        // ============================================
+        function exportToCSV() {
+            const csvContent = [
+                // Header
+                ['ID', 'Name', 'Position', 'Department', 'Type', 'Gender', 'Nationality', 'Leave Days', 'Salary', 'Status'].join(','),
+                // Rows
+                ...employees.map(emp => [
+                    emp.id,
+                    `"${emp.name}"`,
+                    `"${emp.position || ''}"`,
+                    `"${emp.department || ''}"`,
+                    emp.type,
+                    emp.gender || '',
+                    emp.nationality || '',
+                    emp.leave_days || 0,
+                    emp.salary || '',
+                    emp.status
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `seg-employees-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         }
 
         // ============================================
         // INITIALIZATION
         // ============================================
-
-        // Check authentication on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (session) {
+                currentUser = session.user;
+                await loadUserData();
+                showDashboard();
+            }
         });
 
-        // Listen for auth state changes
         supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_OUT') {
                 location.reload();
             }
         });
-	// Navigation System
-	document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        // Update active class in sidebar
-        document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
-        link.classList.add('active');
-        
-        const page = link.getAttribute('data-page');
-        
-        // In a real app, you'd hide/show divs here. 
-        // For now, let's alert so you know it's working!
-        if(page !== 'dashboard') {
-        
-		// ============================================
-		// DATA FETCHING FUNCTIONS
-		// ============================================
 
-		async function loadEmployees() {
-			const employeeContainer = document.querySelector('#page-employees .welcome-message');
-			
-			try {
-				updateSyncStatus('syncing');
-				
-				// Fetch data from your 'employees' table
-				const { data, error } = await supabaseClient
-					.from('employees')
-					.select('*')
-					.order('name', { ascending: true });
-
-				if (error) throw error;
-
-				if (!data || data.length === 0) {
-					employeeContainer.innerHTML = `
-						<h2>Employee Directory</h2>
-						<p>No employees found in the database.</p>
-						<button class="btn btn-primary admin-only" onclick="alert('Add Employee Modal coming next!')">
-							+ Add First Employee
-						</button>`;
-					return;
-				}
-
-				// Build the Table HTML
-				let tableHtml = `
-					<div style="overflow-x: auto; margin-top: 2rem;">
-						<table style="width: 100%; border-collapse: collapse; text-align: left;">
-							<thead>
-								<tr style="border-bottom: 2px solid var(--border);">
-									<th style="padding: 12px;">Name</th>
-									<th style="padding: 12px;">Position</th>
-									<th style="padding: 12px;">Department</th>
-									<th style="padding: 12px;">Status</th>
-								</tr>
-							</thead>
-							<tbody>
-				`;
-
-				data.forEach(emp => {
-					tableHtml += `
-						<tr style="border-bottom: 1px solid var(--border);">
-							<td style="padding: 12px; font-weight: 600;">${emp.name}</td>
-							<td style="padding: 12px;">${emp.position || 'N/A'}</td>
-							<td style="padding: 12px;">${emp.department || 'N/A'}</td>
-							<td style="padding: 12px;">
-								<span style="padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; 
-									background: ${emp.status === 'Active' ? '#d1fae5' : '#f1f5f9'}; 
-									color: ${emp.status === 'Active' ? '#065f46' : '#64748b'};">
-									${emp.status}
-								</span>
-							</td>
-						</tr>
-					`;
-				});
-
-				tableHtml += `</tbody></table></div>`;
-				employeeContainer.innerHTML = `<h2>Employee Directory</h2>` + tableHtml;
-				
-				updateSyncStatus('connected');
-
-			} catch (error) {
-				console.error('Error fetching employees:', error);
-				employeeContainer.innerHTML = `<p style="color: var(--danger);">Error loading data: ${error.message}</p>`;
-				updateSyncStatus('error');
-			}
-}
-		
-		// Updated Navigation Logic
-		document.querySelectorAll('.nav-link').forEach(link => {
-			link.addEventListener('click', (e) => {
-				e.preventDefault();
-				
-				const page = link.getAttribute('data-page');
-				
-				// 1. Highlight the active link
-				document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
-				link.classList.add('active');
-				
-				// 2. Hide ALL page views
-				document.querySelectorAll('.page-view').forEach(view => {
-					view.style.display = 'none';
-				});
-				
-				// 3. Show ONLY the selected page view
-				const targetPage = document.getElementById(`page-${page}`);
-				if (targetPage) {
-					targetPage.style.display = 'block';
-					
-					// Update Page Titles
-					document.getElementById('current-page-title').textContent = 
-						page.charAt(0).toUpperCase() + page.slice(1);
-				}
-			});
-		});;
-				}
-			});
-		});
-		
-			// --- Modal Controls ---
-		function showAddEmployeeModal() {
-			document.getElementById('add-employee-modal').style.display = 'flex';
-		}
-
-		function hideAddEmployeeModal() {
-			document.getElementById('add-employee-modal').style.display = 'none';
-		}
-
-		// --- Save Employee to Supabase ---
-		document.getElementById('add-employee-form').addEventListener('submit', async (e) => {
-			e.preventDefault();
-			
-			const newEmployee = {
-				id: crypto.randomUUID(), // Generate a unique ID
-				name: document.getElementById('emp-name').value,
-				position: document.getElementById('emp-position').value,
-				department: document.getElementById('emp-dept').value,
-				type: 'Staff', // Default type
-				status: 'Active'
-			};
-
-			try {
-				const { error } = await supabaseClient
-					.from('employees')
-					.insert([newEmployee]);
-
-				if (error) throw error;
-
-				alert('Employee added successfully!');
-				hideAddEmployeeModal();
-				document.getElementById('add-employee-form').reset();
-				loadEmployees(); // Refresh the table
-			} catch (error) {
-				alert('Error saving employee: ' + error.message);
-			}
-		});
-
-		// --- Refined Load Employees Function ---
-		async function loadEmployees() {
-			const container = document.getElementById('employees-table-container');
-			
-			try {
-				const { data, error } = await supabaseClient
-					.from('employees')
-					.select('*')
-					.order('name', { ascending: true });
-
-				if (error) throw error;
-
-				if (!data || data.length === 0) {
-					container.innerHTML = '<p style="text-align:center; padding:2rem;">No employee records found. Click "+ Add Employee" to start.</p>';
-					return;
-				}
-
-				let html = `
-					<table style="width:100%; border-collapse:collapse; margin-top:1rem;">
-						<thead>
-							<tr style="text-align:left; border-bottom:2px solid #eee;">
-								<th style="padding:12px;">Name</th>
-								<th style="padding:12px;">Position</th>
-								<th style="padding:12px;">Department</th>
-							</tr>
-						</thead>
-						<tbody>`;
-				
-				data.forEach(emp => {
-					html += `
-						<tr style="border-bottom:1px solid #eee;">
-							<td style="padding:12px; font-weight:500;">${emp.name}</td>
-							<td style="padding:12px;">${emp.position || '-'}</td>
-							<td style="padding:12px;">${emp.department || '-'}</td>
-						</tr>`;
-				});
-				
-				html += '</tbody></table>';
-				container.innerHTML = html;
-
-			} catch (error) {
-				container.innerHTML = `<p style="color:red;">Failed to load: ${error.message}</p>`;
-			}
-		}
+        // Add to column settings modal button
+        window.showColumnSettings = showColumnSettings;
     </script>
 </body>
 </html>
