@@ -493,6 +493,14 @@
                 padding: 2rem;
             }
         }
+		.page-view {
+			animation: fadeIn 0.3s ease-in;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; }
+			to { opacity: 1; }
+		}
     </style>
 </head>
 <body>
@@ -600,22 +608,34 @@
             <!-- Main Content -->
             <main class="main-content">
                 <div class="page-header">
-                    <h2 class="page-title">Welcome to SEG HR Dashboard</h2>
-                    <p class="page-subtitle">Manage your workforce efficiently</p>
-                </div>
+					<h2 class="page-title" id="current-page-title">Dashboard</h2>
+					<p class="page-subtitle" id="current-page-subtitle">Welcome to SEG HR Dashboard</p>
+				</div>
 
-                <div class="welcome-message">
-                    <div class="welcome-icon">🎉</div>
-                    <h2>You're Successfully Logged In!</h2>
-                    <p>
-                        Your Supabase-powered HR Dashboard is now live and accessible from anywhere.<br>
-                        <strong>Next steps:</strong> We'll add all the employee management features,<br>
-                        leave approval system, and analytics in the next update.
-                    </p>
-                    <p style="margin-top: 1.5rem; font-size: 0.95rem;">
-                        <strong>Your role:</strong> <span id="role-display-main" style="color: var(--primary);"></span>
-                    </p>
-                </div>
+				<div id="page-dashboard" class="page-view">
+					<div class="welcome-message">
+						<div class="welcome-icon">🎉</div>
+						<h2>You're Successfully Logged In!</h2>
+						<p>Your Supabase-powered HR Dashboard is now live.</p>
+						<p style="margin-top: 1.5rem; font-size: 0.95rem;">
+							<strong>Your role:</strong> <span id="role-display-main" style="color: var(--primary);"></span>
+						</p>
+					</div>
+				</div>
+
+				<div id="page-employees" class="page-view" style="display: none;">
+					<div class="welcome-message">
+						<h2>Employee Directory</h2>
+						<p>Loading employee data from Supabase...</p>
+						</div>
+				</div>
+
+				<div id="page-leave" class="page-view" style="display: none;">
+					<div class="welcome-message">
+						<h2>Leave Management</h2>
+						<p>Fetching leave requests...</p>
+					</div>
+				</div>
             </main>
         </div>
     </div>
@@ -849,10 +869,36 @@
         // In a real app, you'd hide/show divs here. 
         // For now, let's alert so you know it's working!
         if(page !== 'dashboard') {
-            alert(`The ${page} module is being connected to your Supabase tables in the next step.`);
-        }
-    });
-});
+        // Updated Navigation Logic
+		document.querySelectorAll('.nav-link').forEach(link => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				
+				const page = link.getAttribute('data-page');
+				
+				// 1. Highlight the active link
+				document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
+				link.classList.add('active');
+				
+				// 2. Hide ALL page views
+				document.querySelectorAll('.page-view').forEach(view => {
+					view.style.display = 'none';
+				});
+				
+				// 3. Show ONLY the selected page view
+				const targetPage = document.getElementById(`page-${page}`);
+				if (targetPage) {
+					targetPage.style.display = 'block';
+					
+					// Update Page Titles
+					document.getElementById('current-page-title').textContent = 
+						page.charAt(0).toUpperCase() + page.slice(1);
+				}
+			});
+		});;
+				}
+			});
+		});
     </script>
 </body>
 </html>
