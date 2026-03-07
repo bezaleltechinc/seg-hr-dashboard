@@ -463,22 +463,21 @@
         }
 
         /* Hide elements based on role */
-        .admin-only, .finance-only, .exec-only {
-            display: none;
-        }
-		/* Show elements based on specific roles */
-		body.role-admin .admin-only,
-		body.role-admin .finance-only,
-		body.role-admin .exec-only {
-			display: block;
+        /* 2. REPLACED ROLE PERMISSIONS */
+		.admin-only, .finance-only, .exec-only, .staff-only {
+			display: none;
 		}
-        body.role-finance_manager .finance-only {
+
+		/* HR Admin & Finance Manager see Admin tools */
+		body.role-admin .admin-only,
+		body.role-finance_manager .admin-only {
 			display: block;
 		}
 
-		body.role-executive_director .exec-only {
-			display: block;
-		}
+		/* Specific Role Views */
+		body.role-executive_director .exec-only { display: block; }
+		body.role-finance_manager .finance-only { display: block; }
+		body.role-employee .staff-only { display: block; }
 		
         /* Responsive */
         @media (max-width: 768px) {
@@ -569,37 +568,32 @@
                 <!-- Navigation -->
                 <nav>
                     <ul class="nav-menu">
-                        <li class="nav-item">
-                            <a href="#" class="nav-link active" data-page="dashboard">
-                                <span class="nav-link-icon">📊</span>
-                                Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="employees">
-                                <span class="nav-link-icon">👥</span>
-                                Employees
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="leave">
-                                <span class="nav-link-icon">🏖️</span>
-                                Leave Management
-                            </a>
-                        </li>
-                        <li class="nav-item admin-only">
-                            <a href="#" class="nav-link" data-page="onboarding">
-                                <span class="nav-link-icon">🎯</span>
-                                Onboarding
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="analytics">
-                                <span class="nav-link-icon">📈</span>
-                                Analytics
-                            </a>
-                        </li>
-                    </ul>
+						<li class="nav-item">
+							<a href="#" class="nav-link active" data-page="dashboard">
+								<span class="nav-link-icon">📊</span> Dashboard
+							</a>
+						</li>
+						<li class="nav-item admin-only">
+							<a href="#" class="nav-link" data-page="employees">
+								<span class="nav-link-icon">👥</span> Employees
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="#" class="nav-link" data-page="leave">
+								<span class="nav-link-icon">🏖️</span> Leave Management
+							</a>
+						</li>
+						<li class="nav-item admin-only">
+							<a href="#" class="nav-link" data-page="onboarding">
+								<span class="nav-link-icon">🎯</span> Onboarding
+							</a>
+						</li>
+						<li class="nav-item finance-only">
+							<a href="#" class="nav-link" data-page="analytics">
+								<span class="nav-link-icon">📈</span> Analytics
+							</a>
+						</li>
+					</ul>
                 </nav>
             </aside>
 
@@ -841,6 +835,24 @@
                 location.reload();
             }
         });
+	// Navigation System
+	document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Update active class in sidebar
+        document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
+        link.classList.add('active');
+        
+        const page = link.getAttribute('data-page');
+        
+        // In a real app, you'd hide/show divs here. 
+        // For now, let's alert so you know it's working!
+        if(page !== 'dashboard') {
+            alert(`The ${page} module is being connected to your Supabase tables in the next step.`);
+        }
+    });
+});
     </script>
 </body>
 </html>
