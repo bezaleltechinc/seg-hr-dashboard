@@ -632,7 +632,8 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvdXRta2V5YXRyem9sbG5kcWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MjAxMDMsImV4cCI6MjA4ODM5NjEwM30.cZBEfJPU5C4tbMpHXMUy1W6ZWuY2hs6e-Ulqj9oOAPA';
 
         // Initialize Supabase client
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Global state
         let currentUser = null;
@@ -645,7 +646,7 @@
 
         // Check if user is already logged in
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (session) {
                 currentUser = session.user;
@@ -678,7 +679,7 @@
 
             try {
                 // Sign in with Supabase
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password,
                 });
@@ -775,7 +776,7 @@
         async function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 try {
-                    await supabase.auth.signOut();
+                    await supabaseClient.auth.signOut();
                     location.reload();
                 } catch (error) {
                     console.error('Logout error:', error);
@@ -827,7 +828,7 @@
         });
 
         // Listen for auth state changes
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_OUT') {
                 location.reload();
             }
