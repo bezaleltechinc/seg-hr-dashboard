@@ -463,15 +463,23 @@
         }
 
         /* Hide elements based on role */
-        .admin-only {
+        .admin-only, .finance-only, .exec-only {
             display: none;
         }
+		/* Show elements based on specific roles */
+		body.role-admin .admin-only,
+		body.role-admin .finance-only,
+		body.role-admin .exec-only {
+			display: block;
+		}
+        body.role-finance_manager .finance-only {
+			display: block;
+		}
 
-        body.role-admin .admin-only,
-        body.role-finance_manager .admin-only {
-            display: block;
-        }
-
+		body.role-executive_director .exec-only {
+			display: block;
+		}
+		
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -786,13 +794,14 @@
 
         // Get friendly role name
         function getRoleDisplayName(role) {
-            const roles = {
-                'admin': 'HR Administrator',
-                'executive_director': 'Executive Director',
-                'finance_manager': 'Finance & Admin Manager'
-            };
-            return roles[role] || role;
-        }
+			const roles = {
+			'admin': 'HR Administrator',
+			'executive_director': 'Executive Director',
+			'finance_manager': 'Finance & Admin Manager',
+			'employee': 'Staff Member'
+			};
+			return roles[role] || 'Staff Member';
+		}
 
         // Update sync status indicator
         function updateSyncStatus(status) {
