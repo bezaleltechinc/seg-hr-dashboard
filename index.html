@@ -632,8 +632,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvdXRta2V5YXRyem9sbG5kcWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MjAxMDMsImV4cCI6MjA4ODM5NjEwM30.cZBEfJPU5C4tbMpHXMUy1W6ZWuY2hs6e-Ulqj9oOAPA';
 
         // Initialize Supabase client
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Global state
         let currentUser = null;
@@ -728,7 +727,7 @@
             try {
                 updateSyncStatus('syncing');
                 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', currentUser.id)
