@@ -1069,11 +1069,13 @@
                 <div class="form-group">
                     <label class="form-label">End Date *</label>
                     <input type="date" id="leave-end-date" class="form-input" required onchange="calculateLeaveDays()">
+                    <small style="color: var(--text-secondary);">Weekends and Ghana public holidays are automatically excluded</small>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Number of Days</label>
                     <input type="number" id="leave-days" class="form-input" readonly>
+                    <small id="leave-days-breakdown" style="color: var(--text-secondary); display: none; margin-top: 0.25rem;"></small>
                 </div>
 
                 <div class="form-group">
@@ -1111,6 +1113,8 @@
                 <div class="form-group">
                     <label class="form-label">Duration (days) *</label>
                     <input type="number" id="onboard-duration" class="form-input" required min="1" value="30" onchange="calculateOnboardingEnd()">
+                    <small style="color: var(--text-secondary);">Working days only (excludes weekends & holidays)</small>
+                    <small id="onboard-days-breakdown" style="color: var(--text-secondary); display: none; margin-top: 0.25rem;"></small>
                 </div>
 
                 <div class="form-group">
@@ -1237,6 +1241,43 @@
         let onboardingTasks = [];
         let users = [];
         let csvData = null;
+
+        // ============================================
+        // GHANA PUBLIC HOLIDAYS 2026
+        // ============================================
+        const ghanaHolidays2026 = [
+            '2026-01-01', // New Year's Day
+            '2026-01-09', // Constitution Day (Observed)
+            '2026-03-06', // Independence Day
+            '2026-03-20', // Eid ul-Fitr (Tentative)
+            '2026-04-03', // Good Friday
+            '2026-04-06', // Easter Monday
+            '2026-05-01', // May Day/Workers' Day
+            '2026-05-27', // Eid al-Adha (Tentative)
+            '2026-07-03', // Republic Day (Observed)
+            '2026-08-04', // Founders' Day
+            '2026-09-21', // Kwame Nkrumah Memorial Day
+            '2026-12-04', // National Farmers' Day
+            '2026-12-25', // Christmas Day
+            '2026-12-26'  // Boxing Day
+        ];
+
+        // Function to check if a date is a weekend
+        function isWeekend(date) {
+            const day = date.getDay();
+            return day === 0 || day === 6; // Sunday or Saturday
+        }
+
+        // Function to check if a date is a Ghana public holiday
+        function isGhanaHoliday(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            return ghanaHolidays2026.includes(dateStr);
+        }
+
+        // Function to check if a date is a working day
+        function isWorkingDay(date) {
+            return !isWeekend(date) && !isGhanaHoliday(date);
+        }
 
         // Column visibility settings
         let visibleColumns = {
@@ -1711,11 +1752,41 @@
         async function saveLeaveRequest(event) {
             event.preventDefault();
             
+            const startDate = document.getElementById('leave-start-date').value;
+            const endDate = document.getElementById('leave-end-date').value;
+            
+            // Check for holidays in the range
+            const holidaysInRange = [];
+            let currentDate = new Date(startDate);
+            const end = new Date(endDate);
+            
+            while (currentDate <= end) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                if (isGhanaHoliday(currentDate)) {
+                    holidaysInRange.push({
+                        date: dateStr,
+                        name: getHolidayName(dateStr)
+                    });
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            // Show confirmation if holidays are in range
+            if (holidaysInRange.length > 0) {
+                const holidayList = holidaysInRange.map(h => `• ${formatDate(h.date)} - ${h.name}`).join('\n');
+                const confirmMsg = `This leave period includes ${holidaysInRange.length} public holiday(s):\n\n${holidayList}\n\nThese days are NOT counted as leave days.\n\nContinue?`;
+                
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+            }
+            
             const leaveData = {
                 employee_id: document.getElementById('leave-employee').value,
                 leave_type: document.getElementById('leave-type').value,
-                start_date: document.getElementById('leave-start-date').value,
-                end_date: document.getElementById('leave-end-date').value,
+                request_date: new Date().toISOString().split('T')[0], // Add request date
+                start_date: startDate,
+                end_date: endDate,
                 days: parseInt(document.getElementById('leave-days').value),
                 reason: document.getElementById('leave-reason').value || null,
                 status: 'PENDING'
@@ -1753,14 +1824,26 @@
                 let currentDate = new Date(startDate);
                 
                 while (currentDate <= endDate) {
-                    const dayOfWeek = currentDate.getDay();
-                    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Exclude weekends
+                    // Only count working days (exclude weekends and Ghana public holidays)
+                    if (isWorkingDay(currentDate)) {
                         days++;
                     }
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
                 
                 document.getElementById('leave-days').value = days;
+                
+                // Show breakdown if holidays are excluded
+                const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const excludedDays = totalDays - days;
+                
+                if (excludedDays > 0) {
+                    const breakdown = document.getElementById('leave-days-breakdown');
+                    if (breakdown) {
+                        breakdown.textContent = `(${totalDays} calendar days - ${excludedDays} weekend/holiday days = ${days} working days)`;
+                        breakdown.style.display = 'block';
+                    }
+                }
             }
         }
 
@@ -1938,9 +2021,29 @@
             const duration = parseInt(document.getElementById('onboard-duration').value);
             
             if (startDate && duration) {
-                const endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + duration);
-                document.getElementById('onboard-end-date').value = endDate.toISOString().split('T')[0];
+                let workingDaysAdded = 0;
+                let currentDate = new Date(startDate);
+                
+                // Add working days only (exclude weekends and holidays)
+                while (workingDaysAdded < duration) {
+                    if (isWorkingDay(currentDate)) {
+                        workingDaysAdded++;
+                    }
+                    
+                    if (workingDaysAdded < duration) {
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                }
+                
+                document.getElementById('onboard-end-date').value = currentDate.toISOString().split('T')[0];
+                
+                // Show actual calendar days
+                const calendarDays = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const breakdown = document.getElementById('onboard-days-breakdown');
+                if (breakdown && calendarDays > duration) {
+                    breakdown.textContent = `(${duration} working days = ${calendarDays} calendar days including weekends/holidays)`;
+                    breakdown.style.display = 'block';
+                }
             }
         }
 
@@ -2272,6 +2375,42 @@
             if (!dateString) return '-';
             const date = new Date(dateString);
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // Get holiday name for a date
+        function getHolidayName(dateStr) {
+            const holidayNames = {
+                '2026-01-01': 'New Year\'s Day',
+                '2026-01-09': 'Constitution Day',
+                '2026-03-06': 'Independence Day',
+                '2026-03-20': 'Eid ul-Fitr',
+                '2026-04-03': 'Good Friday',
+                '2026-04-06': 'Easter Monday',
+                '2026-05-01': 'May Day/Workers\' Day',
+                '2026-05-27': 'Eid al-Adha',
+                '2026-07-03': 'Republic Day',
+                '2026-08-04': 'Founders\' Day',
+                '2026-09-21': 'Kwame Nkrumah Memorial Day',
+                '2026-12-04': 'National Farmers\' Day',
+                '2026-12-25': 'Christmas Day',
+                '2026-12-26': 'Boxing Day'
+            };
+            return holidayNames[dateStr] || null;
+        }
+
+        // Get upcoming holidays
+        function getUpcomingHolidays(count = 5) {
+            const today = new Date();
+            const upcoming = ghanaHolidays2026
+                .map(dateStr => ({
+                    date: dateStr,
+                    name: getHolidayName(dateStr),
+                    dateObj: new Date(dateStr)
+                }))
+                .filter(holiday => holiday.dateObj >= today)
+                .slice(0, count);
+            
+            return upcoming;
         }
 
         // ============================================
