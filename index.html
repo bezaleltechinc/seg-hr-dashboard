@@ -802,6 +802,7 @@
                                 <thead>
                                     <tr>
                                         <th>Employee</th>
+                                        <th>Request Date</th>
                                         <th>Type</th>
                                         <th>Start Date</th>
                                         <th>End Date</th>
@@ -812,7 +813,7 @@
                                 </thead>
                                 <tbody id="leave-table-body">
                                     <tr>
-                                        <td colspan="7" style="text-align: center;">
+                                        <td colspan="8" style="text-align: center;">
                                             <span class="spinner"></span> Loading leave requests...
                                         </td>
                                     </tr>
@@ -1044,6 +1045,12 @@
                     <select id="leave-employee" class="form-select" required>
                         <option value="">Select employee...</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Request Date *</label>
+                    <input type="date" id="leave-request-date" class="form-input" required>
+                    <small style="color: var(--text-secondary);">Date when this leave request was made</small>
                 </div>
 
                 <div class="form-group">
@@ -1518,6 +1525,12 @@
         // ============================================
         function showModal(modalId) {
             document.getElementById(modalId).classList.add('show');
+            
+            // Auto-populate request date with today's date when opening leave modal
+            if (modalId === 'add-leave-modal') {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('leave-request-date').value = today;
+            }
         }
 
         function hideModal(modalId) {
@@ -1754,6 +1767,7 @@
             
             const startDate = document.getElementById('leave-start-date').value;
             const endDate = document.getElementById('leave-end-date').value;
+            const requestDate = document.getElementById('leave-request-date').value;
             
             // Check for holidays in the range
             const holidaysInRange = [];
@@ -1784,7 +1798,7 @@
             const leaveData = {
                 employee_id: document.getElementById('leave-employee').value,
                 leave_type: document.getElementById('leave-type').value,
-                request_date: new Date().toISOString().split('T')[0], // Add request date
+                request_date: requestDate, // Use request date from form
                 start_date: startDate,
                 end_date: endDate,
                 days: parseInt(document.getElementById('leave-days').value),
@@ -1923,7 +1937,7 @@
             const tbody = document.getElementById('leave-table-body');
             
             if (leaveRequests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No leave requests found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No leave requests found</td></tr>';
                 return;
             }
 
@@ -1933,6 +1947,7 @@
                 return `
                     <tr>
                         <td>${leave.employee_name || leave.employee_id}</td>
+                        <td>${formatDate(leave.request_date)}</td>
                         <td>${leave.leave_type}</td>
                         <td>${formatDate(leave.start_date)}</td>
                         <td>${formatDate(leave.end_date)}</td>
